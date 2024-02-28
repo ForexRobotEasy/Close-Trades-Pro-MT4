@@ -1,0 +1,109 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                              Close Trades Pro MT4|
+//|                                                     forexroboteasy.com|
+//|                                            Forex Robot Easy Team|
+//|                                                https://forexroboteasy.com|
+//+------------------------------------------------------------------+
+
+// Define global variables
+datetime lastUpdateTime = 0;
+double totalProfit = 0;
+double totalLoss = 0;
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   // Set up initial conditions and parameters
+   lastUpdateTime = TimeLocal();
+   
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Clean up any resources used by the expert advisor
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Check if it's time to update trade information
+   if (TimeCurrent() - lastUpdateTime >= 5) // Update every 5 seconds
+   {
+      // Reset total profit and loss
+      totalProfit = 0;
+      totalLoss = 0;
+      
+      // Loop through all open positions
+      for (int i = 0; i < PositionsTotal(); i++)
+      {
+         // Calculate profit/loss for each position
+         double profitLoss = PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+         
+         // Update total profit/loss
+         if (profitLoss > 0)
+            totalProfit += profitLoss;
+         else
+            totalLoss += profitLoss;
+      }
+      
+      // Update last update time
+      lastUpdateTime = TimeCurrent();
+   }
+   
+   // Check for closure conditions and close positions accordingly
+   for (int i = 0; i < PositionsTotal(); i++)
+   {
+      // Get position information
+      double positionProfit = PositionGetDouble(POSITION_PROFIT);
+      double positionLoss = PositionGetDouble(POSITION_SWAP);
+      datetime positionOpenTime = PositionGetInteger(POSITION_TIME);
+      
+      // Check if position meets closure conditions
+      if (positionProfit >= 100 || positionLoss <= -100 || TimeCurrent() - positionOpenTime >= 3600) // Profit target of 100, stop loss of -100, time duration of 1 hour
+      {
+         // Close position
+         if (!PositionClose(PositionGetTicket(), PositionGetDouble(POSITION_VOLUME)))
+         {
+            Print('Failed to close position: ', GetLastError());
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Custom functions                                                 |
+//+------------------------------------------------------------------+
+void CalculateProfitLoss()
+{
+   // Calculate total profit and loss
+   double totalProfitLoss = 0;
+   
+   for (int i = 0; i < PositionsTotal(); i++)
+   {
+      totalProfitLoss += PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+   }
+   
+   Print('Total profit/loss: ', totalProfitLoss);
+}
+
+void MonitorTrades()
+{
+   // Monitor trade performance
+   for (int i = 0; i < PositionsTotal(); i++)
+   {
+      Print('Trade ', i+1);
+      Print('Profit: ', PositionGetDouble(POSITION_PROFIT));
+      Print('Loss: ', PositionGetDouble(POSITION_SWAP));
+      Print('Open time: ', TimeToString(PositionGetInteger(POSITION_TIME)));
+      Print('------------------------');
+   }
+}
